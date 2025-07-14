@@ -11,7 +11,6 @@ permissions:
 jobs:
   infracost:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,6 +26,37 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
           echo "$HOME/.infracost/bin" >> $GITHUB_PATH
+
+      - name: Generate Infracost JSON output
+        run: infracost breakdown --path . --format json --out-file infracost.json
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Guardrail: Fail if cost > $20 (should succeed)
+        run: |
+          max_cost=20
+          total_cost=$(jq '.projects[].breakdown.totalMonthlyCost | tonumber' infracost.json | paste -sd+ - | bc)
+          echo "Total monthly cost: $total_cost"
+          result=$(echo "$total_cost > $max_cost" | bc)
+          if [ "$result" -eq 1 ]; then
+            echo "❌ Cost estimate $total_cost exceeds threshold $max_cost"
+            exit 1
+          else
+            echo "✅ Cost estimate $total_cost is within threshold $max_cost"
+          fi
+
+      - name: Guardrail: Fail if cost > $5 (should fail if cost is above $5)
+        run: |
+          max_cost=5
+          total_cost=$(jq '.projects[].breakdown.totalMonthlyCost | tonumber' infracost.json | paste -sd+ - | bc)
+          echo "Total monthly cost: $total_cost"
+          result=$(echo "$total_cost > $max_cost" | bc)
+          if [ "$result" -eq 1 ]; then
+            echo "❌ Cost estimate $total_cost exceeds threshold $max_cost"
+            exit 1
+          else
+            echo "✅ Cost estimate $total_cost is within threshold $max_cost"
+          fi
 
       - name: Generate Infracost table output
         id: infracost_table
