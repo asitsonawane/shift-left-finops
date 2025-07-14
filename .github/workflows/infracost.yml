@@ -24,13 +24,11 @@ jobs:
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      # Generate cost diff and post comment
-      - name: Infracost diff
-        run: |
-          infracost diff \
-            --path=. \
-            --format json \
-            --out-file=/tmp/infracost-diff.json
+      - name: Generate baseline cost estimate
+        run: infracost breakdown --path . --format json --out-file infracost-base.json
+        
+      - name: Run Infracost diff
+        run: infracost diff --path . --compare-to infracost-base.json
 
       # Post or update the PR comment
       - name: Post cost comment
