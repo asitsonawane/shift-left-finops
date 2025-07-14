@@ -25,21 +25,17 @@ jobs:
       # Install Infracost
       - name: Install Infracost
         uses: infracost/actions/setup@v3
-        # with:
-        #   api-key: ${{ secrets.INFRACOST_API_KEY }}
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
 
     #   - name: Generate baseline cost estimate
     #     run: infracost breakdown --path . --format json --out-file infracost-base.json
 
       - name: Generate Infracost base breakdown
         run: infracost breakdown --path . --format json --out-file infracost-base.json
-        env:
-          INFRACOST_SKIP_CLOUD: true
-
+      
       - name: Run Infracost diff
         run: infracost diff --path . --compare-to infracost-base.json --format json --out-file /tmp/infracost-diff.json
-        env:
-          INFRACOST_SKIP_CLOUD: true
 
       # Post or update the PR comment
       - name: Post cost comment
@@ -47,5 +43,3 @@ jobs:
         with:
           path: /tmp/infracost-diff.json
           behavior: update
-        env:
-          INFRACOST_SKIP_CLOUD: true
