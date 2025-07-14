@@ -24,17 +24,17 @@ jobs:
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      # Generate cost JSON for the base and head commits
+      # Generate cost diff and post comment
       - name: Infracost diff
         run: |
           infracost diff \
             --path=. \
-            --format github-comment \
-            --out-file=/tmp/infracost-comment.json
+            --format json \
+            --out-file=/tmp/infracost-diff.json
 
       # Post or update the PR comment
       - name: Post cost comment
         uses: infracost/actions/comment@v1
         with:
-          path: /tmp/infracost-comment.json
+          path: /tmp/infracost-diff.json
           behavior: update
