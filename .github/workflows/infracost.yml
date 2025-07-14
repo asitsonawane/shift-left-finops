@@ -11,6 +11,8 @@ permissions:
 jobs:
   infracost:
     runs-on: ubuntu-latest
+    env:
+      COST_THRESHOLD: 50
 
     steps:
       - name: Checkout code
@@ -43,11 +45,11 @@ jobs:
           infracost breakdown --path . --format json --out-file infracost-check.json
           TOTAL_COST=$(jq -r '.totalMonthlyCost // 0' infracost-check.json)
           echo "Total monthly cost: \$${TOTAL_COST}"
-          if (( $(echo "$TOTAL_COST > 50" | bc -l) )); then
-            echo "❌ Cost threshold exceeded! Monthly cost \$${TOTAL_COST} is greater than \$50"
+          if (( $(echo "$TOTAL_COST > $COST_THRESHOLD" | bc -l) )); then
+            echo "❌ Cost threshold exceeded! Monthly cost \$${TOTAL_COST} is greater than \$${COST_THRESHOLD}"
             exit 1
           else
-            echo "✅ Cost threshold check passed. Monthly cost \$${TOTAL_COST} is within \$50 limit"
+            echo "✅ Cost threshold check passed. Monthly cost \$${TOTAL_COST} is within \$${COST_THRESHOLD} limit"
           fi
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
