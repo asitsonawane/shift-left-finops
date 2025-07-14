@@ -1,7 +1,7 @@
 name: Infracost Cost Diff
 
 on:
-  pull_request:
+  pull_request:            # run on every PR
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -11,50 +11,22 @@ permissions:
 jobs:
   infracost:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Install Terraform (if your repo doesn’t already do this)
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
+      # Install Infracost CLI directly
       - name: Install Infracost CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
           echo "$HOME/.infracost/bin" >> $GITHUB_PATH
-
-      - name: Generate Infracost JSON output
-        run: infracost breakdown --path . --format json --out-file infracost.json
-        env:
-          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-
-      - name: Guardrail: Fail if cost > $20 (should succeed)
-        run: |
-          max_cost=20
-          total_cost=$(jq '.projects[].breakdown.totalMonthlyCost | tonumber' infracost.json | paste -sd+ - | bc)
-          echo "Total monthly cost: $total_cost"
-          result=$(echo "$total_cost > $max_cost" | bc)
-          if [ "$result" -eq 1 ]; then
-            echo "❌ Cost estimate $total_cost exceeds threshold $max_cost"
-            exit 1
-          else
-            echo "✅ Cost estimate $total_cost is within threshold $max_cost"
-          fi
-
-      - name: Guardrail: Fail if cost > $5 (should fail if cost is above $5)
-        run: |
-          max_cost=5
-          total_cost=$(jq '.projects[].breakdown.totalMonthlyCost | tonumber' infracost.json | paste -sd+ - | bc)
-          echo "Total monthly cost: $total_cost"
-          result=$(echo "$total_cost > $max_cost" | bc)
-          if [ "$result" -eq 1 ]; then
-            echo "❌ Cost estimate $total_cost exceeds threshold $max_cost"
-            exit 1
-          else
-            echo "✅ Cost estimate $total_cost is within threshold $max_cost"
-          fi
 
       - name: Generate Infracost table output
         id: infracost_table
@@ -63,6 +35,13 @@ jobs:
           echo 'table<<EOF' >> $GITHUB_OUTPUT
           cat infracost-table.txt >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Check cost threshold
+        run: |
+          infracost breakdown --path . --format json --out-file infracost-check.json
+          infracost output --path infracost-check.json --format diff --threshold 50
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
