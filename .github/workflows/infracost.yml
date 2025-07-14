@@ -40,8 +40,7 @@ jobs:
 
       - name: Check cost threshold
         run: |
-          infracost breakdown --path . --format json --out-file infracost-check.json
-          infracost output --path infracost-check.json --format diff --threshold 50
+          infracost breakdown --path . --format json --out-file infracost-check.json --fail-on-exceed 50
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
