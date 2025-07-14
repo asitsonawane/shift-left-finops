@@ -25,9 +25,7 @@ jobs:
       # Install Infracost CLI directly
       - name: Install Infracost CLI
         run: |
-          mkdir -p ~/.infracost/bin
-          curl -L --output ~/.infracost/bin/infracost https://github.com/infracost/infracost/releases/download/v0.10.42/infracost-linux-amd64
-          chmod +x ~/.infracost/bin/infracost
+          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
           echo "$HOME/.infracost/bin" >> $GITHUB_PATH
 
       - name: Generate Infracost table output
