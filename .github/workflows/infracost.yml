@@ -4,9 +4,15 @@ on:
   pull_request:            # run on every PR
     types: [opened, synchronize, reopened]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   infracost:
     runs-on: ubuntu-latest
+    env:
+      COST_THRESHOLD: 5
 
     steps:
       - name: Checkout code
@@ -18,22 +24,42 @@ jobs:
         with:
           terraform_version: 1.7.5
 
-      # Install Infracost
-      - name: Install Infracost
-        uses: infracost/actions/setup@v3
-        with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-      # Generate cost JSON for the base and head commits
-      - name: Infracost diff
+      # Install Infracost CLI directly
+      - name: Install Infracost CLI
         run: |
-          infracost diff \
-            --path=. \
-            --format github-comment \
-            --out-file=/tmp/infracost-comment.json
+          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+          echo "$HOME/.infracost/bin" >> $GITHUB_PATH
 
-      # Post or update the PR comment
-      - name: Post cost comment
-        uses: infracost/actions/comment@v3
+      - name: Generate Infracost table output
+        id: infracost_table
+        run: |
+          infracost breakdown --path . --format table > infracost-table.txt
+          echo 'table<<EOF' >> $GITHUB_OUTPUT
+          cat infracost-table.txt >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Check cost threshold
+        run: |
+          infracost breakdown --path . --format json --out-file infracost-check.json
+          TOTAL_COST=$(jq -r '.totalMonthlyCost // 0' infracost-check.json)
+          echo "Total monthly cost: \$${TOTAL_COST}"
+          if (( $(echo "$TOTAL_COST > $COST_THRESHOLD" | bc -l) )); then
+            echo "❌ Cost threshold exceeded! Monthly cost \$${TOTAL_COST} is greater than \$${COST_THRESHOLD}"
+            exit 1
+          else
+            echo "✅ Cost threshold check passed. Monthly cost \$${TOTAL_COST} is within \$${COST_THRESHOLD} limit"
+          fi
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Post cost table as PR comment
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          path: /tmp/infracost-comment.json
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### Infracost Estimate (CLI Table)
+            ```
+            ${{ steps.infracost_table.outputs.table }}
+            ```

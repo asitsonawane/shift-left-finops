@@ -1,3 +1,5 @@
+# Trigger workflow run for Infracost (test guardrail)
+# Sample Terraform configuration for Infracost testing
 provider "aws" {
   region = "us-east-1"
 }
