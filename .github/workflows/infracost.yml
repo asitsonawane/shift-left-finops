@@ -4,6 +4,10 @@ on:
   pull_request:            # run on every PR
     types: [opened, synchronize, reopened]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   infracost:
     runs-on: ubuntu-latest
