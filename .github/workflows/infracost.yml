@@ -40,7 +40,15 @@ jobs:
 
       - name: Check cost threshold
         run: |
-          infracost breakdown --path . --format json --out-file infracost-check.json --fail-on-exceed 50
+          infracost breakdown --path . --format json --out-file infracost-check.json
+          TOTAL_COST=$(jq -r '.totalMonthlyCost // 0' infracost-check.json)
+          echo "Total monthly cost: \$${TOTAL_COST}"
+          if (( $(echo "$TOTAL_COST > 50" | bc -l) )); then
+            echo "❌ Cost threshold exceeded! Monthly cost \$${TOTAL_COST} is greater than \$50"
+            exit 1
+          else
+            echo "✅ Cost threshold check passed. Monthly cost \$${TOTAL_COST} is within \$50 limit"
+          fi
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
