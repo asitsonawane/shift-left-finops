@@ -1,3 +1,4 @@
+# Trigger workflow run
 # Sample Terraform configuration for Infracost testing
 provider "aws" {
   region = "us-east-1"
