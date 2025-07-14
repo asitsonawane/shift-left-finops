@@ -28,10 +28,10 @@ jobs:
     #     run: infracost breakdown --path . --format json --out-file infracost-base.json
 
       - name: Generate Infracost base breakdown
-        run: infracost breakdown --path /code --format json --out-file /tmp/infracost-diff.json
+        run: infracost breakdown --path . --format json --out-file infracost-base.json
       
       - name: Run Infracost diff
-        run: infracost diff --path . --compare-to infracost-base.json
+        run: infracost diff --path . --compare-to infracost-base.json --format json --out-file /tmp/infracost-diff.json
 
       # Post or update the PR comment
       - name: Post cost comment
