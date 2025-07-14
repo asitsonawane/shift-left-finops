@@ -1,7 +1,7 @@
 name: Infracost Cost Diff
 
 on:
-  pull_request:            # run on every PR
+  pull_request:
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -15,13 +15,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Install Terraform (if your repo doesn’t already do this)
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.5
 
-      # Install Infracost CLI directly
       - name: Install Infracost CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
