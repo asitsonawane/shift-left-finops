@@ -22,24 +22,23 @@ jobs:
         with:
           terraform_version: 1.7.5
 
-      # Install Infracost
-      - name: Install Infracost
-        uses: infracost/actions/setup@v3
+      # Install Infracost CLI directly
+      - name: Install Infracost CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+          echo "$HOME/.infracost/bin" >> $GITHUB_PATH
+
+      - name: Generate Infracost table output
+        run: infracost breakdown --path . --format table > infracost-table.txt
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Post cost table as PR comment
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-    #   - name: Generate baseline cost estimate
-    #     run: infracost breakdown --path . --format json --out-file infracost-base.json
-
-      - name: Generate Infracost base breakdown
-        run: infracost breakdown --path . --format json --out-file infracost-base.json
-      
-      - name: Run Infracost diff
-        run: infracost diff --path . --compare-to infracost-base.json --format json --out-file /tmp/infracost-diff.json
-
-      # Post or update the PR comment
-      - name: Post cost comment
-        uses: infracost/actions/comment@v1
-        with:
-          path: /tmp/infracost-diff.json
-          behavior: update
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### Infracost Estimate (CLI Table)
+            ```
+            $(cat infracost-table.txt)
+            ```
