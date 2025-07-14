@@ -24,9 +24,12 @@ jobs:
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      - name: Generate baseline cost estimate
-        run: infracost breakdown --path . --format json --out-file infracost-base.json
-        
+    #   - name: Generate baseline cost estimate
+    #     run: infracost breakdown --path . --format json --out-file infracost-base.json
+
+      - name: Generate Infracost base breakdown
+        run: infracost breakdown --path /code --format json --out-file /tmp/infracost-diff.json
+      
       - name: Run Infracost diff
         run: infracost diff --path . --compare-to infracost-base.json
 
