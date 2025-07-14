@@ -29,7 +29,12 @@ jobs:
           echo "$HOME/.infracost/bin" >> $GITHUB_PATH
 
       - name: Generate Infracost table output
-        run: infracost breakdown --path . --format table > infracost-table.txt
+        id: infracost_table
+        run: |
+          infracost breakdown --path . --format table > infracost-table.txt
+          echo 'table<<EOF' >> $GITHUB_OUTPUT
+          cat infracost-table.txt >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
@@ -40,5 +45,5 @@ jobs:
           body: |
             ### Infracost Estimate (CLI Table)
             ```
-            $(cat infracost-table.txt)
+            ${{ steps.infracost_table.outputs.table }}
             ```
